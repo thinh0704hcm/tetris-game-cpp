@@ -64,7 +64,7 @@ char currentName[32] = "";
 int nameCharCount = 0;
 int pendingScore = 0;
 
-int posX = 4, posY = 0, blockType = 1, nextBlockType = 0;
+int posX = (W / 2) - 2, posY = 0, blockType = 1, nextBlockType = 0;
 int score = 0;
 float gameTimer = 0;
 float dropTimer = 0;
@@ -231,13 +231,16 @@ void initBoard() {
 bool canMove(int dx, int dy) {
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
-            if (currentBlock[i][j] != ' ') {
+            if (currentBlock[i][j] != ' ') { // Chỉ kiểm tra những ô có gạch
                 int tx = posX + j + dx;
                 int ty = posY + i + dy;
-                if (tx < 1 || tx >= W - 1 || ty >= H - 1)
-                    return false;
-                if (board[ty][tx] != ' ')
-                    return false;
+                
+                // Kiểm tra biên trái/phải (cột 0 và W-1 là tường)
+                if (tx <= 0 || tx >= W - 1) return false;
+                // Kiểm tra biên dưới (dòng H-1 là tường)
+                if (ty >= H - 1) return false;
+                // Kiểm tra va chạm với các khối đã cố định trên board
+                if (ty >= 0 && board[ty][tx] != ' ') return false;
             }
         }
     }
@@ -262,16 +265,16 @@ void rotateBlock() {
         for (int j = 0; j < 4; j++)
             rotated[j][3 - i] = currentBlock[i][j];
 
-    for (int i = 0; i < 4; i++)
-        for (int j = 0; j < 4; j++)
-            if (rotated[i][j] != ' ') {
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            if (rotated[i][j] != ' ') { // Chỉ kiểm tra những ô có gạch sau khi xoay
                 int tx = posX + j;
                 int ty = posY + i;
-                if (tx < 1 || tx >= W - 1 || ty >= H - 1)
-                    return;
-                if (board[ty][tx] != ' ')
-                    return;
+                if (tx <= 0 || tx >= W - 1 || ty >= H - 1) return;
+                if (ty >= 0 && board[ty][tx] != ' ') return;
             }
+        }
+    }
 
     for (int i = 0; i < 4; i++)
         for (int j = 0; j < 4; j++)
@@ -443,7 +446,7 @@ int main() {
                         clearTimer = 1.0f;
                         spawnParticles();
                     } else {
-                        posX = 5;
+                        posX = (W / 2) - 2;
                         posY = 0;
                         blockType = nextBlockType;
                         nextBlockType = rand() % 7;
@@ -477,7 +480,7 @@ int main() {
                         acePopupTimer = 2.0f;
                     isClearing = false;
                     moveSpeed = max(0.05f, moveSpeed * 0.95f);
-                    posX = 5;
+                    posX = (W / 2) - 2;
                     posY = 0;
                     blockType = nextBlockType;
                     nextBlockType = rand() % 7;
@@ -520,7 +523,7 @@ int main() {
                             clearTimer = 1.0f;
                             spawnParticles();
                         } else {
-                            posX = 5;
+                            posX = (W / 2) - 2;
                             posY = 0;
                             blockType = nextBlockType;
                             nextBlockType = rand() % 7;
@@ -830,7 +833,7 @@ int main() {
                     if (blocks[blockType][i][j] != ' ') {
                         float gx = (float)((posX + j) * cellSize + (int)shakeX);
                         float gy = (float)(((int)dropEndY + i) * cellSize +
-                                           (int)shakeY);
+                                        (int)shakeY);
                         Color gc = blockColors[blockType];
                         gc.a = (unsigned char)(80 * (1.0f - progress));
                         DrawRectangleRounded(
@@ -841,8 +844,7 @@ int main() {
             }
             for (int trail = 1; trail < (int)(dropEndY - dropStartY); trail++) {
                 float trailAlpha = (1.0f - progress) *
-                                   (1.0f - trail / (dropEndY - dropStartY)) *
-                                   100;
+                                   (1.0f - trail / (dropEndY - dropStartY)) *100;
                 if (trailAlpha < 5)
                     continue;
                 int trailY = (int)dropStartY + trail - 1;
