@@ -362,6 +362,7 @@ void initColors() {
 
 void drawPlayerBoard(Player &p, int boardX, int boardY, int cellS,
                      float shakeX, float shakeY) {
+    float hue = fmod(p.clearTimer * 480, 360);
     for (int i = 0; i < H; i++) {
         for (int j = 0; j < W; j++) {
             int rx = boardX + j * cellS + (int)shakeX;
@@ -369,8 +370,13 @@ void drawPlayerBoard(Player &p, int boardX, int boardY, int cellS,
             if (p.board[i][j] == '#')
                 DrawRectangle(rx, ry, cellS - 1, cellS - 1, DARKGRAY);
             else if (p.board[i][j] != ' ') {
+                bool isFlashRow = false;
+                for (int k = 0; k < p.clearingRowCount; k++)
+                    if (p.clearingRows[k] == i) { isFlashRow = true; break; }
                 Color blockColor;
-                if (p.board[i][j] >= '0' && p.board[i][j] <= '6')
+                if (isFlashRow && p.isClearing)
+                    blockColor = ColorFromHSV(hue + i * 30, 1, 1);
+                else if (p.board[i][j] >= '0' && p.board[i][j] <= '6')
                     blockColor = blockColors[p.board[i][j] - '0'];
                 else
                     blockColor = BLUE;
@@ -382,6 +388,22 @@ void drawPlayerBoard(Player &p, int boardX, int boardY, int cellS,
                     (Rectangle){(float)rx + 2, (float)ry + 2,
                                 (float)cellS - 5, (float)cellS - 5},
                     0.2f, 4, Fade(WHITE, 0.12f));
+            }
+        }
+    }
+
+    if (p.isClearing) {
+        for (int k = 0; k < p.clearingRowCount; k++) {
+            int row = p.clearingRows[k];
+            float glowSize = (1.0f - p.clearTimer) * 20;
+            for (int g = 0; g < 3; g++) {
+                float s = glowSize + g * 4;
+                Color glow = ColorFromHSV(hue + row * 30, 1, 1);
+                glow.a = (unsigned char)((60 - g * 15) * (1.0f - p.clearTimer));
+                DrawRectangle((int)(boardX + 1 * cellS - s + shakeX),
+                              (int)(boardY + row * cellS - s + shakeY),
+                              (int)((W - 2) * cellS + s * 2),
+                              (int)(cellS + s * 2), glow);
             }
         }
     }
@@ -468,6 +490,43 @@ void drawPlayerBoard(Player &p, int boardX, int boardY, int cellS,
         DrawLine(boardX + j * cellS + (int)shakeX, boardY,
                  boardX + j * cellS + (int)shakeX, boardY + H * cellS,
                  Fade(DARKGRAY, 0.5f));
+
+    int bw = W * cellS;
+    int bh = H * cellS;
+
+    if (p.isClearing) {
+        float progress = 1.0f - p.clearTimer;
+        float alpha = progress < 0.2f ? progress / 0.2f : 1.0f;
+        if (progress > 0.7f) alpha = 1.0f - (progress - 0.7f) / 0.3f;
+        int fontSize = 40 + (int)(progress * 60);
+        const char *label = TextFormat("+%d", p.clearingRowCount * 100);
+        int tw = MeasureText(label, fontSize);
+        int cx = boardX + (bw - tw) / 2;
+        int cy = boardY + (bh - fontSize) / 2;
+        Color tc = ColorFromHSV(hue, 1, 1);
+        tc.a = (unsigned char)(alpha * 255);
+        DrawText(label, cx + (int)shakeX, cy + (int)shakeY - 30, fontSize, tc);
+
+        if (p.clearingRowCount >= 3) {
+            Color flash = Fade(WHITE, 0.3f * alpha);
+            DrawRectangle(boardX, boardY, bw, bh, flash);
+        }
+    }
+
+    if (p.acePopupTimer > 0) {
+        float progress = 1.0f - p.acePopupTimer / 2.0f;
+        float alpha = progress < 0.15f ? progress / 0.15f : 1.0f;
+        if (progress > 0.8f) alpha = 1.0f - (progress - 0.8f) / 0.2f;
+        int fontSize = 50 + (int)(progress * 80);
+        const char *aceText = "ACE";
+        int tw = MeasureText(aceText, fontSize);
+        int cx = boardX + (bw - tw) / 2;
+        int cy = boardY + (bh - fontSize) / 2;
+        Color ac = ColorFromHSV(progress * 720, 1, 1);
+        ac.a = (unsigned char)(alpha * 255);
+        DrawText(aceText, cx + (int)shakeX, cy + (int)shakeY - 30, fontSize, ac);
+    }
+
 }
 
 int main() {
@@ -1155,14 +1214,15 @@ int main() {
         }
 
         if (gameState == 6) {
-            int cellS2 = 13;
+            int cellS2 = 14;
             int bw = W * cellS2;
             int bh = H * cellS2;
-            int gap = 20;
+            int gap = 30;
             int totalW = 2 * bw + gap;
             int board1X = (screenWidth - totalW) / 2;
             int board2X = board1X + bw + gap;
-            int boardY = 60;
+            int boardY = 50;
+            int sidebarW = 70;
 
             int shake1X = 0, shake1Y = 0, shake2X = 0, shake2Y = 0;
             if (p1.isClearing) {
@@ -1184,16 +1244,49 @@ int main() {
             drawPlayerBoard(p1, board1X, boardY, cellS2, shake1X, shake1Y);
             drawPlayerBoard(p2, board2X, boardY, cellS2, shake2X, shake2Y);
 
-            int infoY = boardY + bh + 10;
-            DrawText(TextFormat("Score: %d", p1.score), board1X, infoY, 16, YELLOW);
-            DrawText(TextFormat("Time: %02d:%02d", (int)p1.gameTimer / 60, (int)p1.gameTimer % 60),
-                     board1X, infoY + 20, 14, GREEN);
-            DrawText(TextFormat("Score: %d", p2.score), board2X, infoY, 16, YELLOW);
-            DrawText(TextFormat("Time: %02d:%02d", (int)p2.gameTimer / 60, (int)p2.gameTimer % 60),
-                     board2X, infoY + 20, 14, GREEN);
+            drawParticles();
 
-            DrawText("P1: A/D R X", board1X, infoY + 45, 12, GRAY);
-            DrawText("P2: < > , .", board2X, infoY + 45, 12, GRAY);
+            for (int side = 0; side < 2; side++) {
+                Player &p = (side == 0) ? p1 : p2;
+                int bx = (side == 0) ? board1X : board2X;
+                int pInfoY = boardY + bh + 8;
+
+                DrawText("SCORE", bx, pInfoY, 14, LIGHTGRAY);
+                DrawText(TextFormat("%06d", p.score), bx, pInfoY + 18, 18, YELLOW);
+
+                if (p.scorePopupTimer > 0) {
+                    float a = p.scorePopupTimer / 1.5f;
+                    int offsetY = (int)((1.0f - a) * 30);
+                    Color c = YELLOW;
+                    c.a = (unsigned char)(a * 255);
+                    DrawText(TextFormat("+%d", p.scorePopupValue), bx,
+                             pInfoY + 18 - offsetY, 16, c);
+                }
+
+                DrawText("TIME", bx, pInfoY + 45, 14, LIGHTGRAY);
+                DrawText(TextFormat("%02d:%02d", (int)p.gameTimer / 60, (int)p.gameTimer % 60),
+                         bx, pInfoY + 63, 16, GREEN);
+
+                DrawText("NEXT", bx, pInfoY + 90, 14, LIGHTGRAY);
+                int nextBoxX = bx;
+                int nextBoxY = pInfoY + 108;
+                DrawRectangleRounded((Rectangle){(float)nextBoxX, (float)nextBoxY, 70, 70}, 0.15f,
+                                     4, Fade(DARKGRAY, 0.3f));
+                for (int i = 0; i < 4; i++)
+                    for (int j = 0; j < 4; j++)
+                        if (blocks[p.nextBlockType][i][j] != ' ') {
+                            float nb = (float)(nextBoxX + j * 14 + 6);
+                            float nby = (float)(nextBoxY + i * 14 + 6);
+                            Color c = blockColors[p.nextBlockType];
+                            DrawRectangleRounded((Rectangle){nb, nby, 12, 12}, 0.25f, 4, c);
+                            DrawRectangleRounded(
+                                (Rectangle){nb + 1, nby + 1, 10, 10}, 0.2f, 4,
+                                Fade(WHITE, 0.12f));
+                        }
+            }
+
+            DrawText("P1: A/D R X", board1X, boardY + bh + 200, 12, GRAY);
+            DrawText("P2: < > , .", board2X, boardY + bh + 200, 12, GRAY);
 
             EndDrawing();
             continue;
