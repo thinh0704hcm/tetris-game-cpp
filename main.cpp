@@ -938,9 +938,6 @@ int main() {
                         spawnBlock(p);
                         if (!canMove(p, 0, 0)) {
                             p.gameOver = true;
-                            if (p1.gameOver && !p2.gameOver) twoPlayerResult = 2;
-                            else if (!p1.gameOver && p2.gameOver) twoPlayerResult = 1;
-                            else if (p1.gameOver && p2.gameOver) twoPlayerResult = 3;
                         }
                     }
                 } else {
@@ -973,9 +970,6 @@ int main() {
                                 spawnBlock(p);
                                 if (!canMove(p, 0, 0)) {
                                     p.gameOver = true;
-                                    if (p1.gameOver && !p2.gameOver) twoPlayerResult = 2;
-                                    else if (!p1.gameOver && p2.gameOver) twoPlayerResult = 1;
-                                    else if (p1.gameOver && p2.gameOver) twoPlayerResult = 3;
                                 }
                             }
                         }
@@ -1312,12 +1306,12 @@ int main() {
                 if (twoPlayerResult == 1) resultText = "Player 1 Wins!";
                 else if (twoPlayerResult == 2) resultText = "Player 2 Wins!";
                 else resultText = "Draw!";
-                int rtw = MeasureText(resultText, 50);
-                DrawText(resultText, (sw - rtw) / 2, 20, 50, GOLD);
+                int rtw = MeasureText(resultText, 70);
+                DrawText(resultText, (sw - rtw) / 2, sh / 2 - 35, 70, GOLD);
 
                 const char* ret = "Press Q to return to menu";
                 int rw = MeasureText(ret, 20);
-                DrawText(ret, (sw - rw) / 2, boardY + bh + 120, 20, GRAY);
+                DrawText(ret, (sw - rw) / 2, sh / 2 + 50, 20, GRAY);
             }
 
             EndDrawing();
