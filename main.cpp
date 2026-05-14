@@ -908,9 +908,6 @@ int main() {
                             spawnBlock(p);
                             if (!canMove(p, 0, 0)) {
                                 p.gameOver = true;
-                                if (p1.gameOver && !p2.gameOver) twoPlayerResult = 2;
-                                else if (!p1.gameOver && p2.gameOver) twoPlayerResult = 1;
-                                else if (p1.gameOver && p2.gameOver) twoPlayerResult = 3;
                             }
                         }
                         p.dropTimer = 0;
@@ -985,6 +982,11 @@ int main() {
                         p.dropTimer = 0;
                     }
                 }
+            }
+            if (p1.gameOver && p2.gameOver && twoPlayerResult == 0) {
+                if (p1.score > p2.score) twoPlayerResult = 1;
+                else if (p2.score > p1.score) twoPlayerResult = 2;
+                else twoPlayerResult = 3;
             }
         }
 
@@ -1254,78 +1256,70 @@ int main() {
             DrawText("P2", board2X + bw / 2 - MeasureText("P2", 20) / 2,
                      boardY - 25, 20, RAYWHITE);
 
-            if (twoPlayerResult != 0) {
-                DrawRectangle(0, 0, sw, sh, Fade(BLACK, 0.4f));
-                const char* loseText = "LOSE";
-                const char* winText = "WIN";
-                int loseW = MeasureText(loseText, 60);
-                int winW = MeasureText(winText, 60);
+            const char* loseText = "LOSE";
+            int loseW = MeasureText(loseText, 50);
+            if (p1.gameOver)
+                DrawText(loseText, board1X + (bw - loseW) / 2, boardY + bh / 2 - 25,
+                         50, RED);
+            if (p2.gameOver)
+                DrawText(loseText, board2X + (bw - loseW) / 2, boardY + bh / 2 - 25,
+                         50, RED);
 
-                if (twoPlayerResult == 1) {
-                    DrawText(winText, board1X + (bw - winW) / 2, boardY + bh / 2 - 30,
-                             60, GOLD);
-                    DrawText(loseText, board2X + (bw - loseW) / 2, boardY + bh / 2 - 30,
-                             60, RED);
-                } else if (twoPlayerResult == 2) {
-                    DrawText(loseText, board1X + (bw - loseW) / 2, boardY + bh / 2 - 30,
-                             60, RED);
-                    DrawText(winText, board2X + (bw - winW) / 2, boardY + bh / 2 - 30,
-                             60, GOLD);
-                } else {
-                    DrawText(loseText, board1X + (bw - loseW) / 2, boardY + bh / 2 - 30,
-                             60, RED);
-                    DrawText(loseText, board2X + (bw - loseW) / 2, boardY + bh / 2 - 30,
-                             60, RED);
-                }
+            if (twoPlayerResult != 0) {
+                DrawRectangle(0, 0, sw, sh, Fade(BLACK, 0.3f));
+                const char* resultText;
+                if (twoPlayerResult == 1) resultText = "Player 1 Wins!";
+                else if (twoPlayerResult == 2) resultText = "Player 2 Wins!";
+                else resultText = "Draw!";
+                int rtw = MeasureText(resultText, 50);
+                DrawText(resultText, (sw - rtw) / 2, 20, 50, GOLD);
 
                 const char* ret = "Press Q to return to menu";
                 int rw = MeasureText(ret, 20);
-                DrawText(ret, (sw - rw) / 2, boardY + bh + 20, 20, GRAY);
+                DrawText(ret, (sw - rw) / 2, boardY + bh + 120, 20, GRAY);
             }
 
-            if (!twoPlayerResult) {
-                for (int side = 0; side < 2; side++) {
-                    Player &p = (side == 0) ? p1 : p2;
-                    int bx = (side == 0) ? board1X : board2X;
-                    int infoY = boardY + bh + 8;
-                    int col2 = bx + 90;
+            for (int side = 0; side < 2; side++) {
+                Player &p = (side == 0) ? p1 : p2;
+                int bx = (side == 0) ? board1X : board2X;
+                int infoY = boardY + bh + 8;
+                int col2 = bx + 90;
 
-                    DrawText("SCORE", bx, infoY, 14, LIGHTGRAY);
-                    DrawText(TextFormat("%06d", p.score), bx, infoY + 16, 18, YELLOW);
-                    if (p.scorePopupTimer > 0) {
-                        float a = p.scorePopupTimer / 1.5f;
-                        int offsetY = (int)((1.0f - a) * 25);
-                        Color c = YELLOW;
-                        c.a = (unsigned char)(a * 255);
-                        DrawText(TextFormat("+%d", p.scorePopupValue), bx + 70,
-                                 infoY + 16 - offsetY, 14, c);
-                    }
-
-                    DrawText("TIME", col2, infoY, 14, LIGHTGRAY);
-                    DrawText(TextFormat("%02d:%02d", (int)p.gameTimer / 60, (int)p.gameTimer % 60),
-                             col2, infoY + 16, 16, GREEN);
-
-                    int nextY = infoY + 45;
-                    DrawText("NEXT", bx, nextY, 14, LIGHTGRAY);
-                    int nextBoxY = nextY + 16;
-                    DrawRectangleRounded((Rectangle){(float)bx, (float)nextBoxY, 70, 70}, 0.15f,
-                                         4, Fade(DARKGRAY, 0.3f));
-                    for (int i = 0; i < 4; i++)
-                        for (int j = 0; j < 4; j++)
-                            if (blocks[p.nextBlockType][i][j] != ' ') {
-                                float nb = (float)(bx + j * 14 + 6);
-                                float nby = (float)(nextBoxY + i * 14 + 6);
-                                Color c = blockColors[p.nextBlockType];
-                                DrawRectangleRounded((Rectangle){nb, nby, 12, 12}, 0.25f, 4, c);
-                                DrawRectangleRounded(
-                                    (Rectangle){nb + 1, nby + 1, 10, 10}, 0.2f, 4,
-                                    Fade(WHITE, 0.12f));
-                            }
+                DrawText("SCORE", bx, infoY, 14, LIGHTGRAY);
+                DrawText(TextFormat("%06d", p.score), bx, infoY + 16, 18, YELLOW);
+                if (p.scorePopupTimer > 0) {
+                    float a = p.scorePopupTimer / 1.5f;
+                    int offsetY = (int)((1.0f - a) * 25);
+                    Color c = YELLOW;
+                    c.a = (unsigned char)(a * 255);
+                    DrawText(TextFormat("+%d", p.scorePopupValue), bx + 70,
+                             infoY + 16 - offsetY, 14, c);
                 }
 
-                DrawText("[A/D/R/X]", board1X, boardY + bh + 145, 11, GRAY);
-                DrawText("[</>,/.]", board2X, boardY + bh + 145, 11, GRAY);
+                DrawText("TIME", col2, infoY, 14, LIGHTGRAY);
+                DrawText(TextFormat("%02d:%02d", (int)p.gameTimer / 60, (int)p.gameTimer % 60),
+                         col2, infoY + 16, 16, GREEN);
+
+                int nextY = infoY + 45;
+                DrawText("NEXT", bx, nextY, 14, LIGHTGRAY);
+                int nextBoxY = nextY + 16;
+                DrawRectangleRounded((Rectangle){(float)bx, (float)nextBoxY, 70, 70}, 0.15f,
+                                     4, Fade(DARKGRAY, 0.3f));
+                for (int i = 0; i < 4; i++)
+                    for (int j = 0; j < 4; j++)
+                        if (blocks[p.nextBlockType][i][j] != ' ') {
+                            float nb = (float)(bx + j * 14 + 6);
+                            float nby = (float)(nextBoxY + i * 14 + 6);
+                            Color c = blockColors[p.nextBlockType];
+                            DrawRectangleRounded((Rectangle){nb, nby, 12, 12}, 0.25f, 4, c);
+                            DrawRectangleRounded(
+                                (Rectangle){nb + 1, nby + 1, 10, 10}, 0.2f, 4,
+                                Fade(WHITE, 0.12f));
+                        }
             }
+
+            DrawText("[A/D/R/X]", board1X, boardY + bh + 145, 11, GRAY);
+            DrawText("[</>,/.]", board2X, boardY + bh + 145, 11, GRAY);
 
             EndDrawing();
             continue;
