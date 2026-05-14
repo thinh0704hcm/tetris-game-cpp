@@ -899,10 +899,9 @@ int main() {
                             p.nextBlockType = rand() % 7;
                             spawnBlock(p);
                             if (!canMove(p, 0, 0)) {
-                                pendingScore = p.score;
-                                gameState = 3;
-                                nameCharCount = 0;
-                                currentName[0] = '\0';
+                                gameState = 0;
+                                PlayMusicStream(menuMusic);
+                                StopMusicStream(gameMusic);
                             }
                         }
                         p.dropTimer = 0;
@@ -1214,15 +1213,14 @@ int main() {
         }
 
         if (gameState == 6) {
-            int cellS2 = 14;
+            int cellS2 = 18;
             int bw = W * cellS2;
             int bh = H * cellS2;
-            int gap = 30;
+            int gap = 12;
             int totalW = 2 * bw + gap;
             int board1X = (screenWidth - totalW) / 2;
             int board2X = board1X + bw + gap;
-            int boardY = 50;
-            int sidebarW = 70;
+            int boardY = 30;
 
             int shake1X = 0, shake1Y = 0, shake2X = 0, shake2Y = 0;
             if (p1.isClearing) {
@@ -1236,10 +1234,10 @@ int main() {
                 shake2Y = (rand() % 200 - 100) * intensity / 100.0f;
             }
 
-            DrawText("Player 1", board1X + bw / 2 - MeasureText("Player 1", 16) / 2,
-                     boardY - 25, 16, RAYWHITE);
-            DrawText("Player 2", board2X + bw / 2 - MeasureText("Player 2", 16) / 2,
-                     boardY - 25, 16, RAYWHITE);
+            DrawText("Player 1", board1X + bw / 2 - MeasureText("Player 1", 14) / 2,
+                     boardY - 20, 14, RAYWHITE);
+            DrawText("Player 2", board2X + bw / 2 - MeasureText("Player 2", 14) / 2,
+                     boardY - 20, 14, RAYWHITE);
 
             drawPlayerBoard(p1, board1X, boardY, cellS2, shake1X, shake1Y);
             drawPlayerBoard(p2, board2X, boardY, cellS2, shake2X, shake2Y);
@@ -1249,44 +1247,44 @@ int main() {
             for (int side = 0; side < 2; side++) {
                 Player &p = (side == 0) ? p1 : p2;
                 int bx = (side == 0) ? board1X : board2X;
-                int pInfoY = boardY + bh + 8;
+                int infoY = boardY + bh + 6;
+                int col2 = bx + 80;
 
-                DrawText("SCORE", bx, pInfoY, 14, LIGHTGRAY);
-                DrawText(TextFormat("%06d", p.score), bx, pInfoY + 18, 18, YELLOW);
-
+                DrawText("SCORE", bx, infoY, 12, LIGHTGRAY);
+                DrawText(TextFormat("%06d", p.score), bx, infoY + 14, 16, YELLOW);
                 if (p.scorePopupTimer > 0) {
                     float a = p.scorePopupTimer / 1.5f;
-                    int offsetY = (int)((1.0f - a) * 30);
+                    int offsetY = (int)((1.0f - a) * 20);
                     Color c = YELLOW;
                     c.a = (unsigned char)(a * 255);
-                    DrawText(TextFormat("+%d", p.scorePopupValue), bx,
-                             pInfoY + 18 - offsetY, 16, c);
+                    DrawText(TextFormat("+%d", p.scorePopupValue), bx + 60,
+                             infoY + 14 - offsetY, 12, c);
                 }
 
-                DrawText("TIME", bx, pInfoY + 45, 14, LIGHTGRAY);
+                DrawText("TIME", col2, infoY, 12, LIGHTGRAY);
                 DrawText(TextFormat("%02d:%02d", (int)p.gameTimer / 60, (int)p.gameTimer % 60),
-                         bx, pInfoY + 63, 16, GREEN);
+                         col2, infoY + 14, 14, GREEN);
 
-                DrawText("NEXT", bx, pInfoY + 90, 14, LIGHTGRAY);
-                int nextBoxX = bx;
-                int nextBoxY = pInfoY + 108;
-                DrawRectangleRounded((Rectangle){(float)nextBoxX, (float)nextBoxY, 70, 70}, 0.15f,
+                int nextY = infoY + 40;
+                DrawText("NEXT", bx, nextY, 12, LIGHTGRAY);
+                int nextBoxY = nextY + 14;
+                DrawRectangleRounded((Rectangle){(float)bx, (float)nextBoxY, 55, 55}, 0.15f,
                                      4, Fade(DARKGRAY, 0.3f));
                 for (int i = 0; i < 4; i++)
                     for (int j = 0; j < 4; j++)
                         if (blocks[p.nextBlockType][i][j] != ' ') {
-                            float nb = (float)(nextBoxX + j * 14 + 6);
-                            float nby = (float)(nextBoxY + i * 14 + 6);
+                            float nb = (float)(bx + j * 11 + 5);
+                            float nby = (float)(nextBoxY + i * 11 + 5);
                             Color c = blockColors[p.nextBlockType];
-                            DrawRectangleRounded((Rectangle){nb, nby, 12, 12}, 0.25f, 4, c);
+                            DrawRectangleRounded((Rectangle){nb, nby, 10, 10}, 0.25f, 4, c);
                             DrawRectangleRounded(
-                                (Rectangle){nb + 1, nby + 1, 10, 10}, 0.2f, 4,
+                                (Rectangle){nb + 1, nby + 1, 8, 8}, 0.2f, 4,
                                 Fade(WHITE, 0.12f));
                         }
             }
 
-            DrawText("P1: A/D R X", board1X, boardY + bh + 200, 12, GRAY);
-            DrawText("P2: < > , .", board2X, boardY + bh + 200, 12, GRAY);
+            DrawText("[A/D/R/X]", board1X, boardY + bh + 120, 10, GRAY);
+            DrawText("[</>,/.]", board2X, boardY + bh + 120, 10, GRAY);
 
             EndDrawing();
             continue;
