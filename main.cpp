@@ -589,7 +589,7 @@ int main() {
                             }
                             if (i == 1) {
                                 gameState = 6;
-                                SetWindowSize(1050, 680);
+                                SetWindowSize(1400, 680);
                                 StopMusicStream(menuMusic);
                                 PlayMusicStream(gameMusic);
                                 initBoard(p1);
@@ -1230,10 +1230,14 @@ int main() {
             int cellS2 = 30;
             int bw = W * cellS2;
             int bh = H * cellS2;
-            int gap = 40;
-            int totalW = 2 * bw + gap;
+            int gap = 60;
+            int sbw = 90;
+            int playerW = bw + sbw;
+            int totalW = 2 * playerW + gap;
             int board1X = (sw - totalW) / 2;
-            int board2X = board1X + bw + gap;
+            int sb1X = board1X + bw + 8;
+            int board2X = sb1X + sbw + gap - 8;
+            int sb2X = board2X + bw + 8;
             int boardY = 10;
 
             int shake1X = 0, shake1Y = 0, shake2X = 0, shake2Y = 0;
@@ -1251,10 +1255,47 @@ int main() {
             drawPlayerBoard(p1, board1X, boardY, cellS2, shake1X, shake1Y);
             drawPlayerBoard(p2, board2X, boardY, cellS2, shake2X, shake2Y);
 
-            DrawText("P1", board1X + bw / 2 - MeasureText("P1", 20) / 2,
-                     boardY - 25, 20, RAYWHITE);
-            DrawText("P2", board2X + bw / 2 - MeasureText("P2", 20) / 2,
-                     boardY - 25, 20, RAYWHITE);
+            for (int side = 0; side < 2; side++) {
+                Player &p = (side == 0) ? p1 : p2;
+                int sx = (side == 0) ? sb1X : sb2X;
+
+                DrawText(side == 0 ? "P1" : "P2", sx, boardY, 28, RAYWHITE);
+                DrawText("SCORE", sx, boardY + 45, 14, LIGHTGRAY);
+                DrawText(TextFormat("%06d", p.score), sx, boardY + 63, 18, YELLOW);
+                if (p.scorePopupTimer > 0) {
+                    float a = p.scorePopupTimer / 1.5f;
+                    int offsetY = (int)((1.0f - a) * 30);
+                    Color c = YELLOW;
+                    c.a = (unsigned char)(a * 255);
+                    DrawText(TextFormat("+%d", p.scorePopupValue), sx,
+                             boardY + 63 - offsetY, 14, c);
+                }
+
+                DrawText("TIME", sx, boardY + 105, 14, LIGHTGRAY);
+                DrawText(TextFormat("%02d:%02d", (int)p.gameTimer / 60, (int)p.gameTimer % 60),
+                         sx, boardY + 123, 14, GREEN);
+
+                DrawText("NEXT", sx, boardY + 160, 14, LIGHTGRAY);
+                int nbY = boardY + 178;
+                DrawRectangleRounded((Rectangle){(float)sx, (float)nbY, 75, 75}, 0.15f,
+                                     4, Fade(DARKGRAY, 0.3f));
+                for (int i = 0; i < 4; i++)
+                    for (int j = 0; j < 4; j++)
+                        if (blocks[p.nextBlockType][i][j] != ' ') {
+                            float nb = (float)(sx + j * 15 + 7);
+                            float nby = (float)(nbY + i * 15 + 7);
+                            Color c = blockColors[p.nextBlockType];
+                            DrawRectangleRounded((Rectangle){nb, nby, 13, 13}, 0.25f, 4, c);
+                            DrawRectangleRounded(
+                                (Rectangle){nb + 1, nby + 1, 11, 11}, 0.2f, 4,
+                                Fade(WHITE, 0.12f));
+                        }
+
+                const char* ctrls = (side == 0) ? "A/D R X" : "< > , .";
+                DrawText(ctrls, sx, boardY + 270, 14, GRAY);
+            }
+
+            drawParticles();
 
             const char* loseText = "LOSE";
             int loseW = MeasureText(loseText, 50);
@@ -1278,48 +1319,6 @@ int main() {
                 int rw = MeasureText(ret, 20);
                 DrawText(ret, (sw - rw) / 2, boardY + bh + 120, 20, GRAY);
             }
-
-            for (int side = 0; side < 2; side++) {
-                Player &p = (side == 0) ? p1 : p2;
-                int bx = (side == 0) ? board1X : board2X;
-                int infoY = boardY + bh + 8;
-                int col2 = bx + 90;
-
-                DrawText("SCORE", bx, infoY, 14, LIGHTGRAY);
-                DrawText(TextFormat("%06d", p.score), bx, infoY + 16, 18, YELLOW);
-                if (p.scorePopupTimer > 0) {
-                    float a = p.scorePopupTimer / 1.5f;
-                    int offsetY = (int)((1.0f - a) * 25);
-                    Color c = YELLOW;
-                    c.a = (unsigned char)(a * 255);
-                    DrawText(TextFormat("+%d", p.scorePopupValue), bx + 70,
-                             infoY + 16 - offsetY, 14, c);
-                }
-
-                DrawText("TIME", col2, infoY, 14, LIGHTGRAY);
-                DrawText(TextFormat("%02d:%02d", (int)p.gameTimer / 60, (int)p.gameTimer % 60),
-                         col2, infoY + 16, 16, GREEN);
-
-                int nextY = infoY + 45;
-                DrawText("NEXT", bx, nextY, 14, LIGHTGRAY);
-                int nextBoxY = nextY + 16;
-                DrawRectangleRounded((Rectangle){(float)bx, (float)nextBoxY, 70, 70}, 0.15f,
-                                     4, Fade(DARKGRAY, 0.3f));
-                for (int i = 0; i < 4; i++)
-                    for (int j = 0; j < 4; j++)
-                        if (blocks[p.nextBlockType][i][j] != ' ') {
-                            float nb = (float)(bx + j * 14 + 6);
-                            float nby = (float)(nextBoxY + i * 14 + 6);
-                            Color c = blockColors[p.nextBlockType];
-                            DrawRectangleRounded((Rectangle){nb, nby, 12, 12}, 0.25f, 4, c);
-                            DrawRectangleRounded(
-                                (Rectangle){nb + 1, nby + 1, 10, 10}, 0.2f, 4,
-                                Fade(WHITE, 0.12f));
-                        }
-            }
-
-            DrawText("[A/D/R/X]", board1X, boardY + bh + 145, 11, GRAY);
-            DrawText("[</>,/.]", board2X, boardY + bh + 145, 11, GRAY);
 
             EndDrawing();
             continue;
